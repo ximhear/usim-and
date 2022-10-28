@@ -122,6 +122,10 @@ carrier_id {
 }
      */
 
+    //TODO: TelephonyManager 어느 버전(X)에서 멀티심을 지원하는가? SubscriptionManager 의 default data sub id를 알아내는 것이 가능한 24버전과 사이에서 어떻게 기본 데이터 sub id를 알아낼까?
+    //TODO: 즉, X <= Version < 24 에서 어떻게 default data sub id을 알아낼까?
+    //TODO: esim을 지원하는 것이 z fold 4이상이이 최신 api 버전으로 가정하고 위의 과정을 무시해도 될 듯 하다.
+
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     public void loadUsimInfo() {
         Log.d("usim", "loadUsimInfo");
@@ -147,6 +151,7 @@ carrier_id {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             int dataSubscriptionId = 0;
             dataSubscriptionId = SubscriptionManager.getDefaultDataSubscriptionId();
+            // INVALID_SUBSCRIPTION_ID
             Log.d("usim", "dataSubscriptionId : " + dataSubscriptionId);
         }
 
@@ -168,7 +173,7 @@ carrier_id {
                     }
                     Log.d("usim", "subscriptionId : " + info.getSubscriptionId());
                     Log.d("usim", "number : " + info.getNumber());
-//                    Log.d("usim", info.toString());
+                    Log.d("usim", info.toString());
                 }
             }
     }
