@@ -33,6 +33,7 @@ import com.g.io.usiminfo.databinding.ActivityMainBinding;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.lang.reflect.Method;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -125,6 +126,8 @@ carrier_id {
     //TODO: TelephonyManager 어느 버전(X)에서 멀티심을 지원하는가? SubscriptionManager 의 default data sub id를 알아내는 것이 가능한 24버전과 사이에서 어떻게 기본 데이터 sub id를 알아낼까?
     //TODO: 즉, X <= Version < 24 에서 어떻게 default data sub id을 알아낼까?
     //TODO: esim을 지원하는 것이 z fold 4이상이니 최신 api 버전으로 가정하고 위의 과정을 무시해도 될 듯 하다.
+    // https://stackoverflow.com/questions/39823886/check-mobile-data-is-on-from-sim-one-or-sim-two-android
+    //
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
     public void loadUsimInfo() {
@@ -176,6 +179,64 @@ carrier_id {
                     Log.d("usim", info.toString());
                 }
             }
+    }
+
+    public static String getDataSimOperator(Context context) {
+        if (context == null) {
+            return null;
+        }
+
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    int dataSubId = SubscriptionManager.getDefaultDataSubscriptionId();
+                    TelephonyManager dataSimManager = tm.createForSubscriptionId(dataSubId);
+                    return dataSimManager.getSimOperator();
+                } else {
+                    String operator = getDataSimOperatorBeforeN(context);
+                    if (operator != null) {
+                        return operator;
+                    } else {
+                        return tm.getSimOperator();
+                    }
+                }
+            } else {
+                return tm.getSimOperator();
+            }
+        }
+        return null;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
+    private static String getDataSimOperatorBeforeN(Context context) {
+        if (context == null) {
+            return null;
+        }
+
+        int dataSubId = -1;
+        try {
+            Method getDefaultDataSubId = SubscriptionManager.class.getDeclaredMethod("getDefaultDataSubId");
+            if (getDefaultDataSubId != null) {
+                getDefaultDataSubId.setAccessible(true);
+                dataSubId = (int) getDefaultDataSubId.invoke(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (dataSubId != -1) {
+            SubscriptionManager sm = (SubscriptionManager) context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE);
+            if (sm != null && ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_PHONE_STATE)
+                    == PackageManager.PERMISSION_GRANTED) {
+                SubscriptionInfo si = sm.getActiveSubscriptionInfo(dataSubId);
+                if (si != null) {
+                    // format keep the same with android.telephony.TelephonyManager#getSimOperator
+                    // MCC + MNC format
+                    return String.valueOf(si.getMcc()) + si.getMnc();
+                }
+            }
+        }
+        return null;
     }
 
     @Override
