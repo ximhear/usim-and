@@ -157,6 +157,8 @@ carrier_id {
             // INVALID_SUBSCRIPTION_ID
             Log.d("usim", "dataSubscriptionId : " + dataSubscriptionId);
         }
+        int dataSimId = MainActivity.getDataSimId(this);
+        Log.d("usim", "dataSimId : " + dataSimId);
 
         if (subscriptionInfoList != null && subscriptionInfoList.size() > 0) {
                 for (int i = 0; i < subscriptionInfoList.size(); i++) {
@@ -179,6 +181,22 @@ carrier_id {
                     Log.d("usim", info.toString());
                 }
             }
+    }
+
+    public static int getDataSimId(Context context) {
+
+        TelephonyManager tm = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        if (tm != null) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    int dataSubId = SubscriptionManager.getDefaultDataSubscriptionId();
+                    return dataSubId;
+                } else {
+                    return getDataSimIdBeforeN(context);
+                }
+            }
+        }
+        return -1;
     }
 
     public static String getDataSimOperator(Context context) {
@@ -206,6 +224,22 @@ carrier_id {
             }
         }
         return null;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
+    private static int getDataSimIdBeforeN(Context context) {
+
+        int dataSubId = -1;
+        try {
+            Method getDefaultDataSubId = SubscriptionManager.class.getDeclaredMethod("getDefaultDataSubId");
+            if (getDefaultDataSubId != null) {
+                getDefaultDataSubId.setAccessible(true);
+                dataSubId = (int) getDefaultDataSubId.invoke(null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return dataSubId;
     }
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP_MR1)
